@@ -1,0 +1,91 @@
+name: Classify jellyfish photo
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  classify:
+    if: contains(github.event.issue.body, 'http')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Classify attached image and comment on issue
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          node <<'NODE'
+          const body = process.env.ISSUE_BODY || '';
+          const urls = [...body.matchAll(/https?:\/\/[^\s)]+/g)]
+            .map(match => match[0].replace(/[.,]$/, ''))
+            .filter(url => /github\.com\/user-attachments|githubusercontent\.com|\.(png|jpe?g|webp|gif)(\?|$)/i.test(url));
+          const imageUrl = urls[0];
+
+          async function comment(markdown) {
+            const response = await fetch(`https://api.github.com/repos/${process.env.REPOSITORY}/issues/${process.env.ISSUE_NUMBER}/comments`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${process.env.GH_TOKEN}`,
+                'Accept': 'application/vnd.github+json',
+                'X-GitHub-Api-Version': '2022-11-28',
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ body: markdown })
+            });
+            if (!response.ok) throw new Error(`GitHub comment failed: ${response.status} ${await response.text()}`);
+          }
+
+          if (!imageUrl) {
+            await comment('No image attachment link was found, so jellyfish classification was skipped.');
+            process.exit(0);
+          }
+
+          if (!process.env.OPENAI_API_KEY) {
+            await comment('Automatic classification is not configured yet. Add OPENAI_API_KEY to the repository Actions secrets.');
+            process.exit(0);
+          }
+
+          const response = await fetch('https://api.openai.com/v1/responses', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              model: 'gpt-4.1-mini',
+              input: [{
+                role: 'user',
+                content: [
+                  { type: 'input_text', text: 'Determine whether this image shows a jellyfish. If yes, estimate the likely species. Return JSON only: {"is_jellyfish":true,"species":"unknown","scientific_name":"unknown","confidence":0,"reason":"short reason","safety_note":"short safety note"}. If the image is not sufficient for a definite identification, use unknown and a low confidence.' },
+                  { type: 'input_image', image_url: imageUrl }
+                ]
+              }]
+            })
+          });
+          if (!response.ok) throw new Error(`OpenAI request failed: ${response.status} ${await response.text()}`);
+          const result = await response.json();
+          const text = result.output_text || result.output?.flatMap(item => item.content || []).map(item => item.text || '').join('') || '';
+          let parsed;
+          try { parsed = JSON.parse(text); } catch { parsed = { is_jellyfish: null, species: 'unreadable', scientific_name: 'unreadable', confidence: 0, reason: text.slice(0, 500), safety_note: 'Do not rely on image classification for safety decisions.' }; }
+
+          const markdown = [
+            '## Jellyfish classification result',
+            `- Jellyfish: ${parsed.is_jellyfish === true ? 'Likely yes' : parsed.is_jellyfish === false ? 'Likely no' : 'Uncertain'}`,
+            `- Estimated species: **${parsed.species || 'unknown'}**`,
+            `- Scientific name: \`${parsed.scientific_name || 'unknown'}\``,
+            `- Confidence: ${Math.round(Number(parsed.confidence || 0) * 100)}%`,
+            `- Reason: ${parsed.reason || 'none'}`,
+            `- Safety note: ${parsed.safety_note || 'Image classification is not a definitive identification.'}`,
+            '',
+            '> AI output is for reference only and does not replace expert identification or safety advice.'
+          ].join('\n');
+          await comment(markdown);
+          NODE
+
