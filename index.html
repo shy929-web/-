@@ -193,7 +193,7 @@
         }
         posts.innerHTML = issues.map(issue => `
           <article class="post">
-            <h3 class="post-title">${escapeHtml(issue.title)}</h3>
+            <h3 class="post-title"><a href="${issue.html_url}" target="_blank" rel="noopener">${escapeHtml(issue.title)}</a></h3>
             <div class="post-meta">${escapeHtml(issue.user.login)} · ${new Date(issue.created_at).toLocaleDateString('ko-KR')}</div>
             <p class="post-body">${escapeHtml(issue.body || '내용이 없습니다.')}</p>
             <div class="post-actions"><a href="${issue.html_url}" target="_blank" rel="noopener">내 게시글 삭제/닫기</a></div>
