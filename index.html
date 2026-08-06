@@ -56,6 +56,7 @@
         <button class="primary" id="capture" disabled>사진 찍기</button>
         <button class="secondary" id="retake" disabled>다시 찍기</button>
         <a class="button success" id="download" download="my-photo.png" hidden>사진 다운로드</a>
+        <button class="secondary" id="postPhoto" disabled>게시판에 올리기</button>
       </div>
       <p class="note">카메라 권한이 필요합니다. 모바일에서는 HTTPS 또는 localhost 환경에서 사용할 수 있습니다.</p>
     </section>
@@ -79,6 +80,7 @@
     const captureButton = document.querySelector('#capture');
     const retakeButton = document.querySelector('#retake');
     const downloadLink = document.querySelector('#download');
+    const postPhotoButton = document.querySelector('#postPhoto');
     let stream;
     const posts = document.querySelector('#posts');
 
@@ -120,12 +122,23 @@
       captureButton.disabled = true;
       downloadLink.href = canvas.toDataURL('image/png');
       downloadLink.hidden = false;
+      postPhotoButton.disabled = false;
       setStatus('사진을 촬영했습니다. 다운로드하거나 다시 찍어보세요.');
+    }
+
+    function postPhoto() {
+      const link = document.createElement('a');
+      link.href = downloadLink.href;
+      link.download = `community-photo-${Date.now()}.png`;
+      link.click();
+      window.open('https://github.com/shy929-web/-/issues/new?title=%EC%82%AC%EC%A7%84%20%EA%B2%8C%EC%8B%9C%EA%B8%80', '_blank', 'noopener');
+      setStatus('사진을 저장했습니다. 열린 GitHub 게시글 화면에서 사진을 첨부해 등록해 주세요.');
     }
 
     startButton.addEventListener('click', startCamera);
     captureButton.addEventListener('click', capturePhoto);
     retakeButton.addEventListener('click', startCamera);
+    postPhotoButton.addEventListener('click', postPhoto);
     window.addEventListener('beforeunload', () => stream?.getTracks().forEach(track => track.stop()));
 
     async function loadCommunityPosts() {
