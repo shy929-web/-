@@ -38,6 +38,11 @@
     .post-actions { margin-top: 10px; }
     .post-actions a { color: #b8c3ff; font-size: .82rem; }
     .post-body { margin: 8px 0 0; white-space: pre-wrap; color: #dce2ff; line-height: 1.45; }
+    .comment-box { margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,.08); }
+    .comment-box label { display: block; margin-bottom: 6px; color: #c7d1f4; font-size: .85rem; font-weight: 700; }
+    .comment-box textarea { width: 100%; min-height: 76px; resize: vertical; border: 1px solid rgba(255,255,255,.14); border-radius: 10px; padding: 10px 12px; background: rgba(3,7,20,.55); color: #f7f8ff; font: inherit; line-height: 1.45; }
+    .comment-box textarea:focus { outline: 2px solid #6c7cff; outline-offset: 1px; }
+    .comment-box .comment-submit { margin-top: 8px; padding: 9px 14px; font-size: .86rem; }
     .empty-posts { color: #aeb9dd; text-align: center; padding: 18px 8px; }
     .map { display: none; height: 230px; margin-top: 14px; border-radius: 14px; overflow: hidden; }
     .map.visible { display: block; }
@@ -229,7 +234,18 @@
             <h3 class="post-title"><a href="${issue.html_url}" target="_blank" rel="noopener">${escapeHtml(issue.title)}</a></h3>
             <div class="post-meta">${escapeHtml(issue.user.login)} · ${new Date(issue.created_at).toLocaleDateString('ko-KR')}</div>
             <p class="post-body">${escapeHtml(issue.body || '내용이 없습니다.')}</p>
-            <div class="post-actions"><a href="${issue.html_url}" target="_blank" rel="noopener">내 게시글 삭제/닫기</a></div>
+            <div class="post-actions">
+              <a href="${issue.html_url}" target="_blank" rel="noopener">게시글 보기 · 댓글 ${issue.comments || 0}개</a>
+              <span aria-hidden="true"> · </span>
+              <a href="${issue.html_url}#issuecomment-new" target="_blank" rel="noopener">댓글 달기</a>
+              <span aria-hidden="true"> · </span>
+              <a href="${issue.html_url}" target="_blank" rel="noopener">내 게시글 삭제/닫기</a>
+            </div>
+            <div class="comment-box">
+              <label for="comment-${issue.number}">댓글 작성</label>
+              <textarea id="comment-${issue.number}" class="comment-input" data-issue-url="${issue.html_url}" placeholder="이 게시글에 댓글을 입력하세요."></textarea>
+              <button class="primary comment-submit" type="button" data-issue-url="${issue.html_url}">GitHub에서 댓글 작성</button>
+            </div>
           </article>`).join('');
       } catch (error) {
         posts.innerHTML = '<div class="empty-posts">게시글을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</div>';
@@ -241,6 +257,25 @@
     }
 
     refreshPostsButton.addEventListener('click', loadCommunityPosts);
+    posts.addEventListener('click', async (event) => {
+      const button = event.target.closest('.comment-submit');
+      if (!button) return;
+      const card = button.closest('.post');
+      const input = card?.querySelector('.comment-input');
+      const comment = input?.value.trim();
+      if (!comment) {
+        input?.focus();
+        setStatus('댓글 내용을 먼저 입력해 주세요.');
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(comment);
+        setStatus('댓글 내용을 복사했습니다. GitHub 댓글 입력칸에 붙여넣고 등록해 주세요.');
+      } catch {
+        setStatus('댓글 내용을 준비했습니다. GitHub에서 댓글을 등록해 주세요.');
+      }
+      window.open(`${button.dataset.issueUrl}#issuecomment-new`, '_blank', 'noopener');
+    });
     window.addEventListener('focus', loadCommunityPosts);
     loadCommunityPosts();
   </script>
