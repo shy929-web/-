@@ -73,7 +73,10 @@
           <h2>사진 커뮤니티</h2>
           <p class="note" style="text-align:left; margin:4px 0 0">모든 방문자가 함께 보는 공개 게시판입니다.</p>
         </div>
-        <a class="button secondary" href="https://github.com/shy929-web/-/issues/new" target="_blank" rel="noopener">게시글 작성</a>
+        <div class="actions" style="margin-top:0">
+          <button class="secondary" id="refreshPosts">새로고침</button>
+          <a class="button secondary" href="https://github.com/shy929-web/-/issues/new" target="_blank" rel="noopener">게시글 작성</a>
+        </div>
       </div>
       <div class="posts" id="posts" aria-live="polite"><div class="empty-posts">게시글을 불러오는 중입니다…</div></div>
     </section>
@@ -95,6 +98,7 @@
     let marker;
     let stream;
     const posts = document.querySelector('#posts');
+    const refreshPostsButton = document.querySelector('#refreshPosts');
 
     function setStatus(message) { status.textContent = message; }
 
@@ -207,6 +211,8 @@
       return String(value).replace(/[&<>'"]/g, character => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' }[character]));
     }
 
+    refreshPostsButton.addEventListener('click', loadCommunityPosts);
+    window.addEventListener('focus', loadCommunityPosts);
     loadCommunityPosts();
   </script>
 </body>
