@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>사진 촬영 스튜디오</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
   <style>
     :root { color-scheme: dark; font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
     * { box-sizing: border-box; }
@@ -36,6 +37,8 @@
     .post-meta { color: #8f9bc2; font-size: .78rem; }
     .post-body { margin: 8px 0 0; white-space: pre-wrap; color: #dce2ff; line-height: 1.45; }
     .empty-posts { color: #aeb9dd; text-align: center; padding: 18px 8px; }
+    .map { display: none; height: 230px; margin-top: 14px; border-radius: 14px; overflow: hidden; }
+    .map.visible { display: block; }
   </style>
 </head>
 <body>
@@ -50,6 +53,7 @@
         <canvas id="photo" aria-label="촬영한 사진"></canvas>
         <div class="empty" id="empty">카메라 시작 버튼을 누르면 촬영 화면이 열립니다.</div>
       </div>
+      <div class="map" id="map" aria-label="촬영 위치 지도"></div>
       <p class="status" id="status" role="status">카메라를 시작할 준비가 되었습니다.</p>
       <div class="actions">
         <button class="primary" id="start">카메라 시작</button>
@@ -57,6 +61,7 @@
         <button class="secondary" id="retake" disabled>다시 찍기</button>
         <a class="button success" id="download" download="my-photo.png" hidden>사진 다운로드</a>
         <button class="secondary" id="postPhoto" disabled>게시판에 올리기</button>
+        <button class="secondary" id="location" disabled>촬영 위치 표시</button>
       </div>
       <p class="note">카메라 권한이 필요합니다. 모바일에서는 HTTPS 또는 localhost 환경에서 사용할 수 있습니다.</p>
     </section>
@@ -71,6 +76,7 @@
       <div class="posts" id="posts" aria-live="polite"><div class="empty-posts">게시글을 불러오는 중입니다…</div></div>
     </section>
   </main>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script>
     const video = document.querySelector('#camera');
     const canvas = document.querySelector('#photo');
@@ -81,6 +87,10 @@
     const retakeButton = document.querySelector('#retake');
     const downloadLink = document.querySelector('#download');
     const postPhotoButton = document.querySelector('#postPhoto');
+    const locationButton = document.querySelector('#location');
+    const mapElement = document.querySelector('#map');
+    let map;
+    let marker;
     let stream;
     const posts = document.querySelector('#posts');
 
@@ -123,7 +133,35 @@
       downloadLink.href = canvas.toDataURL('image/png');
       downloadLink.hidden = false;
       postPhotoButton.disabled = false;
+      locationButton.disabled = false;
       setStatus('사진을 촬영했습니다. 다운로드하거나 다시 찍어보세요.');
+    }
+
+    function showLocation() {
+      if (!navigator.geolocation) {
+        setStatus('이 브라우저에서는 GPS 위치 기능을 사용할 수 없습니다.');
+        return;
+      }
+      setStatus('촬영 위치를 확인하는 중입니다. 위치 권한을 허용해 주세요.');
+      navigator.geolocation.getCurrentPosition(({ coords }) => {
+        const { latitude, longitude, accuracy } = coords;
+        mapElement.classList.add('visible');
+        if (!map) {
+          map = L.map(mapElement).setView([latitude, longitude], 16);
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+          }).addTo(map);
+        } else {
+          map.setView([latitude, longitude], 16);
+        }
+        marker?.remove();
+        marker = L.marker([latitude, longitude]).addTo(map)
+          .bindPopup(`촬영 위치<br>위도 ${latitude.toFixed(5)}, 경도 ${longitude.toFixed(5)}<br>정확도 약 ${Math.round(accuracy)}m`)
+          .openPopup();
+        setStatus(`촬영 위치를 지도에 표시했습니다. (정확도 약 ${Math.round(accuracy)}m)`);
+      }, (error) => {
+        setStatus(error.code === 1 ? '위치 권한을 허용해야 지도에 표시할 수 있습니다.' : '현재 위치를 확인할 수 없습니다.');
+      }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
     }
 
     function postPhoto() {
@@ -139,6 +177,7 @@
     captureButton.addEventListener('click', capturePhoto);
     retakeButton.addEventListener('click', startCamera);
     postPhotoButton.addEventListener('click', postPhoto);
+    locationButton.addEventListener('click', showLocation);
     window.addEventListener('beforeunload', () => stream?.getTracks().forEach(track => track.stop()));
 
     async function loadCommunityPosts() {
