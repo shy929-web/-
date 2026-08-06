@@ -38,6 +38,9 @@
     .post-actions { margin-top: 10px; }
     .post-actions a { color: #b8c3ff; font-size: .82rem; }
     .post-body { margin: 8px 0 0; white-space: pre-wrap; color: #dce2ff; line-height: 1.45; }
+    .post-image { display: block; width: 100%; max-height: 360px; object-fit: contain; margin-top: 10px; border-radius: 10px; background: #050812; }
+    .post-comment { display: flex; gap: 8px; margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: rgba(108,124,255,.1); color: #dce2ff; }
+    .post-comment strong { color: #b8c3ff; white-space: nowrap; }
     .comment-box { margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,.08); }
     .comment-box label { display: block; margin-bottom: 6px; color: #c7d1f4; font-size: .85rem; font-weight: 700; }
     .comment-box textarea { width: 100%; min-height: 76px; resize: vertical; border: 1px solid rgba(255,255,255,.14); border-radius: 10px; padding: 10px 12px; background: rgba(3,7,20,.55); color: #f7f8ff; font: inherit; line-height: 1.45; }
@@ -82,7 +85,7 @@
         </div>
         <div class="actions" style="margin-top:0">
           <button class="secondary" id="refreshPosts">새로고침</button>
-          <a class="button secondary" href="https://github.com/shy929-web/-/issues/new" target="_blank" rel="noopener">게시글 작성</a>
+          <span class="note" style="margin:0">사진을 찍으면 바로 게시됩니다.</span>
         </div>
       </div>
       <div class="posts" id="posts" aria-live="polite"><div class="empty-posts">게시글을 불러오는 중입니다…</div></div>
@@ -90,6 +93,14 @@
   </main>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script>
+    const SUPABASE_URL = 'https://jagqezgsgvwwkqnicnew.supabase.co';
+    const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_z91Fgj004Fel7d4BaqekuA_ld7nZN_0';
+    const supabaseHeaders = {
+      apikey: SUPABASE_PUBLISHABLE_KEY,
+      Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+      'Content-Type': 'application/json'
+    };
+
     const video = document.querySelector('#camera');
     const canvas = document.querySelector('#photo');
     const empty = document.querySelector('#empty');
@@ -107,6 +118,7 @@
     let marker;
     let stream;
     let facingMode = 'user';
+    let capturedLocation = null;
     const posts = document.querySelector('#posts');
     const refreshPostsButton = document.querySelector('#refreshPosts');
 
@@ -177,6 +189,7 @@
       setStatus('촬영 위치를 확인하는 중입니다. 위치 권한을 허용해 주세요.');
       navigator.geolocation.getCurrentPosition(({ coords }) => {
         const { latitude, longitude, accuracy } = coords;
+        capturedLocation = { latitude, longitude };
         mapElement.classList.add('visible');
         if (!map) {
           map = L.map(mapElement).setView([latitude, longitude], 16);
@@ -222,13 +235,30 @@
       }
     }
 
-    function postPhoto() {
-      const link = document.createElement('a');
-      link.href = downloadLink.href;
-      link.download = `community-photo-${Date.now()}.png`;
-      link.click();
-      window.open('https://github.com/shy929-web/-/issues/new?title=%EC%82%AC%EC%A7%84%20%EA%B2%8C%EC%8B%9C%EA%B8%80', '_blank', 'noopener');
-      setStatus('사진을 저장했습니다. 열린 GitHub 게시글 화면에서 사진을 첨부해 등록해 주세요.');
+    async function postPhoto() {
+      if (!downloadLink.href) return;
+      postPhotoButton.disabled = true;
+      setStatus('사진을 사진 커뮤니티에 올리는 중입니다…');
+      try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/community_posts`, {
+          method: 'POST',
+          headers: { ...supabaseHeaders, Prefer: 'return=representation' },
+          body: JSON.stringify({
+            title: '사진 게시글',
+            body: '카메라로 촬영한 사진입니다.',
+            image_data: downloadLink.href,
+            latitude: capturedLocation?.latitude ?? null,
+            longitude: capturedLocation?.longitude ?? null
+          })
+        });
+        if (!response.ok) throw new Error('게시 실패');
+        setStatus('사진이 공개 사진 커뮤니티에 게시됐습니다.');
+        await loadCommunityPosts();
+      } catch (error) {
+        setStatus('게시판에 올리지 못했습니다. 잠시 후 다시 시도해 주세요.');
+      } finally {
+        postPhotoButton.disabled = false;
+      }
     }
 
     startButton.addEventListener('click', startCamera);
@@ -242,29 +272,32 @@
 
     async function loadCommunityPosts() {
       try {
-        const response = await fetch('https://api.github.com/repos/shy929-web/-/issues?state=open&per_page=20');
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/community_posts?select=*&order=created_at.desc&limit=50`, { headers: supabaseHeaders });
         if (!response.ok) throw new Error('게시글을 불러오지 못했습니다.');
-        const issues = (await response.json()).filter(issue => !issue.pull_request);
-        if (!issues.length) {
+        const communityPosts = await response.json();
+        if (!communityPosts.length) {
           posts.innerHTML = '<div class="empty-posts">아직 게시글이 없습니다. 첫 게시글을 남겨보세요!</div>';
           return;
         }
-        posts.innerHTML = issues.map(issue => `
+        const postsWithComments = await Promise.all(communityPosts.map(async post => {
+          const commentResponse = await fetch(`${SUPABASE_URL}/rest/v1/community_comments?select=*&post_id=eq.${post.id}&order=created_at.asc`, { headers: supabaseHeaders });
+          return { ...post, comments: commentResponse.ok ? await commentResponse.json() : [] };
+        }));
+        posts.innerHTML = postsWithComments.map(post => `
           <article class="post">
-            <h3 class="post-title"><a href="${issue.html_url}" target="_blank" rel="noopener">${escapeHtml(issue.title)}</a></h3>
-            <div class="post-meta">${escapeHtml(issue.user.login)} · ${new Date(issue.created_at).toLocaleDateString('ko-KR')}</div>
-            <p class="post-body">${escapeHtml(issue.body || '내용이 없습니다.')}</p>
+            <h3 class="post-title">${escapeHtml(post.title)}</h3>
+            <div class="post-meta">공개 사용자 · ${new Date(post.created_at).toLocaleString('ko-KR')}</div>
+            ${post.image_data?.startsWith('data:image/') ? `<img class="post-image" src="${post.image_data}" alt="촬영 사진" loading="lazy">` : ''}
+            <p class="post-body">${escapeHtml(post.body || '내용이 없습니다.')}</p>
+            ${post.latitude && post.longitude ? `<div class="post-meta">촬영 위치: ${Number(post.latitude).toFixed(5)}, ${Number(post.longitude).toFixed(5)}</div>` : ''}
+            ${post.comments.map(comment => `<div class="post-comment"><strong>댓글</strong><span>${escapeHtml(comment.body)}</span></div>`).join('')}
             <div class="post-actions">
-              <a href="${issue.html_url}" target="_blank" rel="noopener">게시글 보기 · 댓글 ${issue.comments || 0}개</a>
-              <span aria-hidden="true"> · </span>
-              <a href="${issue.html_url}#issuecomment-new" target="_blank" rel="noopener">댓글 달기</a>
-              <span aria-hidden="true"> · </span>
-              <a href="${issue.html_url}" target="_blank" rel="noopener">내 게시글 삭제/닫기</a>
+              <span>${post.comments.length}개 댓글</span>
             </div>
             <div class="comment-box">
-              <label for="comment-${issue.number}">댓글 작성</label>
-              <textarea id="comment-${issue.number}" class="comment-input" data-issue-url="${issue.html_url}" placeholder="이 게시글에 댓글을 입력하세요."></textarea>
-              <button class="primary comment-submit" type="button" data-issue-url="${issue.html_url}">GitHub에서 댓글 작성</button>
+              <label for="comment-${post.id}">댓글 작성</label>
+              <textarea id="comment-${post.id}" class="comment-input" data-post-id="${post.id}" placeholder="이 게시글에 댓글을 입력하세요."></textarea>
+              <button class="primary comment-submit" type="button" data-post-id="${post.id}">댓글 등록</button>
             </div>
           </article>`).join('');
       } catch (error) {
@@ -283,18 +316,27 @@
       const card = button.closest('.post');
       const input = card?.querySelector('.comment-input');
       const comment = input?.value.trim();
+      const postId = button.dataset.postId;
       if (!comment) {
         input?.focus();
         setStatus('댓글 내용을 먼저 입력해 주세요.');
         return;
       }
+      button.disabled = true;
       try {
-        await navigator.clipboard.writeText(comment);
-        setStatus('댓글 내용을 복사했습니다. GitHub 댓글 입력칸에 붙여넣고 등록해 주세요.');
-      } catch {
-        setStatus('댓글 내용을 준비했습니다. GitHub에서 댓글을 등록해 주세요.');
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/community_comments`, {
+          method: 'POST',
+          headers: { ...supabaseHeaders, Prefer: 'return=minimal' },
+          body: JSON.stringify({ post_id: postId, body: comment })
+        });
+        if (!response.ok) throw new Error('댓글 등록 실패');
+        setStatus('댓글이 등록됐습니다.');
+        await loadCommunityPosts();
+      } catch (error) {
+        setStatus('댓글을 등록하지 못했습니다. 잠시 후 다시 시도해 주세요.');
+      } finally {
+        button.disabled = false;
       }
-      window.open(`${button.dataset.issueUrl}#issuecomment-new`, '_blank', 'noopener');
     });
     window.addEventListener('focus', loadCommunityPosts);
     loadCommunityPosts();
