@@ -162,8 +162,9 @@
 
     function capturePhoto() {
       if (!video.videoWidth) return;
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      const scale = Math.min(1, 1280 / video.videoWidth);
+      canvas.width = Math.round(video.videoWidth * scale);
+      canvas.height = Math.round(video.videoHeight * scale);
       const context = canvas.getContext('2d');
       context.save();
       context.scale(-1, 1);
@@ -173,7 +174,7 @@
       canvas.style.display = 'block';
       retakeButton.disabled = false;
       captureButton.disabled = true;
-      downloadLink.href = canvas.toDataURL('image/png');
+      downloadLink.href = canvas.toDataURL('image/jpeg', 0.78);
       downloadLink.hidden = false;
       postPhotoButton.disabled = false;
       locationButton.disabled = false;
@@ -251,11 +252,14 @@
             longitude: capturedLocation?.longitude ?? null
           })
         });
-        if (!response.ok) throw new Error('게시 실패');
+        if (!response.ok) {
+          const details = await response.text();
+          throw new Error(details || '게시 실패');
+        }
         setStatus('사진이 공개 사진 커뮤니티에 게시됐습니다.');
         await loadCommunityPosts();
       } catch (error) {
-        setStatus('게시판에 올리지 못했습니다. 잠시 후 다시 시도해 주세요.');
+        setStatus(`게시판에 올리지 못했습니다. ${error.message.slice(0, 100)}`);
       } finally {
         postPhotoButton.disabled = false;
       }
