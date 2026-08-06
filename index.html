@@ -64,6 +64,7 @@
         <a class="button success" id="download" download="my-photo.png" hidden>사진 다운로드</a>
         <button class="secondary" id="postPhoto" disabled>게시판에 올리기</button>
         <button class="secondary" id="location" disabled>촬영 위치 표시</button>
+        <button class="secondary" id="busanMap">부산 지도 보기</button>
       </div>
       <p class="note">카메라 권한이 필요합니다. 모바일에서는 HTTPS 또는 localhost 환경에서 사용할 수 있습니다.</p>
     </section>
@@ -93,6 +94,7 @@
     const downloadLink = document.querySelector('#download');
     const postPhotoButton = document.querySelector('#postPhoto');
     const locationButton = document.querySelector('#location');
+    const busanMapButton = document.querySelector('#busanMap');
     const mapElement = document.querySelector('#map');
     let map;
     let marker;
@@ -170,6 +172,32 @@
       }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
     }
 
+    function showBusanMap() {
+      const busan = [35.1796, 129.0756];
+      mapElement.classList.add('visible');
+      if (!map) {
+        map = L.map(mapElement).setView(busan, 11);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+      } else {
+        map.setView(busan, 11);
+      }
+      marker?.remove();
+      marker = L.marker(busan).addTo(map).bindPopup('부산 중심 지도').openPopup();
+      setStatus('부산 지도를 표시했습니다. GPS 권한을 허용하면 현재 위치도 표시합니다.');
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(({ coords }) => {
+          marker?.remove();
+          marker = L.marker([coords.latitude, coords.longitude]).addTo(map)
+            .bindPopup(`현재 GPS 위치<br>위도 ${coords.latitude.toFixed(5)}, 경도 ${coords.longitude.toFixed(5)}`)
+            .openPopup();
+          map.setView([coords.latitude, coords.longitude], 13);
+          setStatus('GPS로 현재 위치를 부산 지도에 표시했습니다.');
+        }, () => {}, { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 });
+      }
+    }
+
     function postPhoto() {
       const link = document.createElement('a');
       link.href = downloadLink.href;
@@ -184,6 +212,7 @@
     retakeButton.addEventListener('click', startCamera);
     postPhotoButton.addEventListener('click', postPhoto);
     locationButton.addEventListener('click', showLocation);
+    busanMapButton.addEventListener('click', showBusanMap);
     window.addEventListener('beforeunload', () => stream?.getTracks().forEach(track => track.stop()));
 
     async function loadCommunityPosts() {
