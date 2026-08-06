@@ -64,6 +64,7 @@
       <p class="status" id="status" role="status">카메라를 시작할 준비가 되었습니다.</p>
       <div class="actions">
         <button class="primary" id="start">카메라 시작</button>
+        <button class="secondary" id="switchCamera" disabled>후방 카메라 사용</button>
         <button class="primary" id="capture" disabled>사진 찍기</button>
         <button class="secondary" id="retake" disabled>다시 찍기</button>
         <a class="button success" id="download" download="my-photo.png" hidden>사진 다운로드</a>
@@ -94,6 +95,7 @@
     const empty = document.querySelector('#empty');
     const status = document.querySelector('#status');
     const startButton = document.querySelector('#start');
+    const switchCameraButton = document.querySelector('#switchCamera');
     const captureButton = document.querySelector('#capture');
     const retakeButton = document.querySelector('#retake');
     const downloadLink = document.querySelector('#download');
@@ -104,6 +106,7 @@
     let map;
     let marker;
     let stream;
+    let facingMode = 'user';
     const posts = document.querySelector('#posts');
     const refreshPostsButton = document.querySelector('#refreshPosts');
 
@@ -112,21 +115,36 @@
     async function startCamera() {
       if (!navigator.mediaDevices?.getUserMedia) {
         setStatus('이 브라우저에서는 카메라 기능을 사용할 수 없습니다.');
-        return;
+        return false;
       }
       try {
         stream?.getTracks().forEach(track => track.stop());
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode }, audio: false });
         video.srcObject = stream;
         video.style.display = 'block';
         canvas.style.display = 'none';
         empty.hidden = true;
         captureButton.disabled = false;
+        switchCameraButton.disabled = false;
         retakeButton.disabled = true;
         downloadLink.hidden = true;
-        setStatus('카메라가 켜졌습니다. 사진 찍기 버튼을 눌러보세요.');
+        setStatus(`${facingMode === 'user' ? '전방' : '후방'} 카메라가 켜졌습니다. 사진 찍기 버튼을 눌러보세요.`);
+        return true;
       } catch (error) {
         setStatus(error.name === 'NotAllowedError' ? '카메라 권한을 허용해 주세요.' : '카메라를 시작할 수 없습니다.');
+        return false;
+      }
+    }
+
+    async function switchCamera() {
+      const previousFacingMode = facingMode;
+      facingMode = facingMode === 'user' ? 'environment' : 'user';
+      const started = await startCamera();
+      if (started) {
+        switchCameraButton.textContent = facingMode === 'user' ? '후방 카메라 사용' : '전방 카메라 사용';
+      } else {
+        facingMode = previousFacingMode;
+        setStatus('카메라를 전환할 수 없습니다. 현재 카메라를 계속 사용합니다.');
       }
     }
 
@@ -214,6 +232,7 @@
     }
 
     startButton.addEventListener('click', startCamera);
+    switchCameraButton.addEventListener('click', switchCamera);
     captureButton.addEventListener('click', capturePhoto);
     retakeButton.addEventListener('click', startCamera);
     postPhotoButton.addEventListener('click', postPhoto);
