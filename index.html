@@ -103,6 +103,12 @@
   <script>
     const SUPABASE_URL = 'https://jagqezgsgvwwkqnicnew.supabase.co';
     const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_z91Fgj004Fel7d4BaqekuA_ld7nZN_0';
+    const OWNER_TOKEN_STORAGE_KEY = 'photo_community_owner_token';
+    const ownerToken = localStorage.getItem(OWNER_TOKEN_STORAGE_KEY) || (() => {
+      const token = crypto.randomUUID();
+      localStorage.setItem(OWNER_TOKEN_STORAGE_KEY, token);
+      return token;
+    })();
     const supabaseHeaders = {
       apikey: SUPABASE_PUBLISHABLE_KEY,
       Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
@@ -260,7 +266,8 @@
             body: '카메라로 촬영한 사진입니다.',
             image_data: downloadLink.href,
             latitude: capturedLocation?.latitude ?? null,
-            longitude: capturedLocation?.longitude ?? null
+            longitude: capturedLocation?.longitude ?? null,
+            owner_token: ownerToken
           })
         });
         if (!response.ok) {
@@ -287,7 +294,7 @@
 
     async function loadCommunityPosts() {
       try {
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/community_posts?select=*&order=created_at.desc&limit=50`, { headers: supabaseHeaders });
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/community_posts_public?select=*&order=created_at.desc&limit=50`, { headers: supabaseHeaders });
         if (!response.ok) throw new Error('게시글을 불러오지 못했습니다.');
         const communityPosts = await response.json();
         if (!communityPosts.length) {
@@ -308,6 +315,7 @@
             ${post.comments.map(comment => `<div class="post-comment"><strong>댓글</strong><span>${escapeHtml(comment.body)}</span></div>`).join('')}
             <div class="post-actions">
               <span>${post.comments.length}개 댓글</span>
+              ${post.owner_token === ownerToken ? `<button class="secondary post-delete" type="button" data-post-id="${post.id}">내 게시물 삭제</button>` : ''}
             </div>
             <div class="comment-box">
               <label for="comment-${post.id}">댓글 작성</label>
@@ -326,6 +334,24 @@
 
     refreshPostsButton.addEventListener('click', loadCommunityPosts);
     posts.addEventListener('click', async (event) => {
+      const deleteButton = event.target.closest('.post-delete');
+      if (deleteButton) {
+        if (!window.confirm('이 게시물을 삭제할까요?')) return;
+        deleteButton.disabled = true;
+        try {
+          const response = await fetch(`${SUPABASE_URL}/rest/v1/community_posts?id=eq.${deleteButton.dataset.postId}`, {
+            method: 'DELETE',
+            headers: { ...supabaseHeaders, 'x-owner-token': ownerToken, Prefer: 'return=minimal' }
+          });
+          if (!response.ok) throw new Error(await response.text());
+          setStatus('내 게시물이 삭제됐습니다.');
+          await loadCommunityPosts();
+        } catch (error) {
+          setStatus('게시물을 삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.');
+          deleteButton.disabled = false;
+        }
+        return;
+      }
       const button = event.target.closest('.comment-submit');
       if (!button) return;
       const card = button.closest('.post');
