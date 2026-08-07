@@ -425,7 +425,7 @@
         const communityPosts = await response.json();
         renderCommunityMarkers(communityPosts);
         if (!communityPosts.length) {
-          posts.innerHTML = '<div class="empty-posts">아직 게시글이 없습니다. 첫 게시글을 남겨보세요!</div>';
+          posts.innerHTML = '';
           return;
         }
         const postsWithComments = await Promise.all(communityPosts.map(async post => {
