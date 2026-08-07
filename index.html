@@ -129,8 +129,6 @@
     </section>
   </main>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/dist/mobilenet.min.js"></script>
   <script>
     const SUPABASE_URL = 'https://jagqezgsgvwwkqnicnew.supabase.co';
     const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_z91Fgj004Fel7d4BaqekuA_ld7nZN_0';
@@ -352,22 +350,31 @@
     }
 
     async function classifyCapturedPhoto() {
-      if (!window.mobilenet) throw new Error('무료 사진 판별 모델을 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.');
-      jellyfishModel ||= await mobilenet.load({ version: 2, alpha: 1.0 });
-      // 상위 5개만 보면 조명·각도에 따라 해파리 후보가 밀려나는 경우가 있어 더 넓게 확인합니다.
-      const predictions = await jellyfishModel.classify(canvas, 20);
-      const jellyfish = predictions.find(prediction => /jellyfish/i.test(prediction.className));
+      // CLIP은 정해진 이미지 분류 목록 대신 "해파리"와 "비해파리"를 직접 비교합니다.
+      const { pipeline, RawImage } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1');
+      jellyfishModel ||= pipeline('zero-shot-image-classification', 'Xenova/clip-vit-base-patch32');
+      const classifier = await jellyfishModel;
+      const image = await RawImage.fromURL(canvas.toDataURL('image/jpeg', 0.9));
+      const predictions = await classifier(image, [
+        'a jellyfish',
+        'a fish',
+        'an underwater animal that is not a jellyfish',
+        'a person, phone, or everyday object'
+      ]);
+      const jellyfish = predictions.find(prediction => prediction.label === 'a jellyfish');
+      const strongestOther = predictions.filter(prediction => prediction.label !== 'a jellyfish')
+        .reduce((best, prediction) => Math.max(best, prediction.score), 0);
       return {
-        isJellyfish: Boolean(jellyfish && jellyfish.probability >= 0.01),
-        confidence: Math.round((jellyfish?.probability || 0) * 100),
-        label: jellyfish?.className || ''
+        isJellyfish: Boolean(jellyfish && jellyfish.score >= 0.34 && jellyfish.score > strongestOther),
+        confidence: Math.round((jellyfish?.score || 0) * 100),
+        label: jellyfish?.label || ''
       };
     }
 
     async function postPhoto() {
       if (!downloadLink.href) return;
       postPhotoButton.disabled = true;
-      setStatus('사진이 해파리인지 무료 브라우저 AI로 확인하는 중입니다…');
+      setStatus('사진이 해파리인지 무료 전용 모델로 확인하는 중입니다. 처음에는 모델을 내려받아 조금 걸릴 수 있습니다…');
       try {
         const classification = await classifyCapturedPhoto();
         if (!classification.isJellyfish) {
