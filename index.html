@@ -344,7 +344,7 @@
       }
       locatedPosts.forEach(post => {
         const postMarker = L.marker([post.latitude, post.longitude]).addTo(map)
-          .bindPopup(`📷 사진 게시물<br>${new Date(post.created_at).toLocaleString('ko-KR')}`);
+          .bindPopup(`<strong>📷 사진 게시물</strong><br>${new Date(post.created_at).toLocaleString('ko-KR')}<br><button class="secondary marker-post-link" type="button" data-post-id="${post.id}" style="margin-top:8px;padding:7px 10px">이 사진 보기</button>`);
         communityMarkers.push(postMarker);
       });
     }
@@ -433,7 +433,7 @@
           return { ...post, comments: commentResponse.ok ? await commentResponse.json() : [] };
         }));
         posts.innerHTML = postsWithComments.map(post => `
-          <article class="post">
+          <article class="post" id="post-${post.id}" data-post-id="${post.id}">
             <h3 class="post-title">${escapeHtml(post.title)}</h3>
             <div class="post-meta">공개 사용자 · ${new Date(post.created_at).toLocaleString('ko-KR')}</div>
             ${post.image_data?.startsWith('data:image/') ? `<img class="post-image" src="${post.image_data}" alt="촬영 사진" loading="lazy">` : ''}
@@ -453,6 +453,16 @@
     }
 
     refreshPostsButton.addEventListener('click', loadCommunityPosts);
+    mapElement.addEventListener('click', event => {
+      const button = event.target.closest('.marker-post-link');
+      if (!button) return;
+      const post = document.querySelector(`#post-${button.dataset.postId}`);
+      if (!post) return;
+      mapCard.hidden = true;
+      post.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      post.style.outline = '3px solid #6c7cff';
+      setTimeout(() => { post.style.outline = ''; }, 1800);
+    });
     posts.addEventListener('click', async (event) => {
       const deleteButton = event.target.closest('.post-delete');
       if (deleteButton) {
