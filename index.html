@@ -164,7 +164,7 @@
       </div>
       <div class="map" id="map" aria-label="촬영 위치 지도"></div>
     </section>
-    <section class="card community" aria-label="커뮤니티 게시판">
+    <section class="card community" id="communitySection" aria-label="커뮤니티 게시판">
       <div class="community-head">
         <div>
           <h2>사진 커뮤니티</h2>
@@ -217,6 +217,7 @@
     const posts = document.querySelector('#posts');
     const refreshPostsButton = document.querySelector('#refreshPosts');
     const guideSection = document.querySelector('#guideSection');
+    const communitySection = document.querySelector('#communitySection');
     const jellyfishGuide = {
       '보름달물해파리':['약독성','국내 전 연안에서 흔히 보이는 투명한 해파리입니다. 우산 안의 네 개 고리 모양 생식소가 특징입니다.','Aurelia aurita'],
       '노무라입깃해파리':['강독성','대형으로 성장하며 여름·가을에 대량 유입될 수 있습니다. 촉수에 닿지 마세요.','Nemopilema nomurai'],
@@ -389,11 +390,11 @@
         }, () => {}, { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 });
       }
     }
-    function showJellyMapHome() { reportSection.hidden = false; guideSection.hidden = true; mapCard.hidden = true; }
+    function showJellyMapHome() { reportSection.hidden = false; guideSection.hidden = true; mapCard.hidden = true; communitySection.hidden = false; }
     document.querySelector('#reportShortcut').addEventListener('click', () => { showJellyMapHome(); reportSection.scrollIntoView({ behavior: 'smooth' }); });
-    document.querySelector('#guideShortcut').addEventListener('click', () => { reportSection.hidden = true; mapCard.hidden = true; guideSection.hidden = false; guideSection.scrollIntoView({ behavior: 'smooth' }); });
+    document.querySelector('#guideShortcut').addEventListener('click', () => { reportSection.hidden = true; mapCard.hidden = true; communitySection.hidden = true; guideSection.hidden = false; guideSection.scrollIntoView({ behavior: 'smooth' }); });
     document.querySelector('#closeGuide').addEventListener('click', showJellyMapHome);
-    document.querySelector('#mapShortcut').addEventListener('click', () => { reportSection.hidden = true; guideSection.hidden = true; showBusanMap(); mapCard.scrollIntoView({ behavior: 'smooth' }); });
+    document.querySelector('#mapShortcut').addEventListener('click', () => { reportSection.hidden = true; guideSection.hidden = true; communitySection.hidden = true; showBusanMap(); mapCard.scrollIntoView({ behavior: 'smooth' }); });
 
     function renderCommunityMarkers(communityPosts) {
       const locatedPosts = communityPosts.filter(post => post.latitude && post.longitude);
