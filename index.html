@@ -485,17 +485,20 @@
           const commentResponse = await fetch(`${SUPABASE_URL}/rest/v1/community_comments?select=*&post_id=eq.${post.id}&order=created_at.asc`, { headers: supabaseHeaders });
           return { ...post, comments: commentResponse.ok ? await commentResponse.json() : [] };
         }));
-        posts.innerHTML = postsWithComments.map(post => `
+        posts.innerHTML = postsWithComments.map(post => {
+          const locationComment = post.comments.find(comment => String(comment.body).startsWith('위치:'));
+          const locationName = locationComment ? String(locationComment.body).replace(/^위치:\s*/, '') : '';
+          return `
           <article class="post" id="post-${post.id}" data-post-id="${post.id}">
             <h3 class="post-title">${escapeHtml(post.title)}</h3>
             <div class="post-meta">공개 사용자 · ${new Date(post.created_at).toLocaleString('ko-KR')}</div>
             ${post.image_data?.startsWith('data:image/') ? `<img class="post-image" src="${post.image_data}" alt="촬영 사진" loading="lazy">` : ''}
-            ${post.latitude && post.longitude ? `<div class="post-meta">촬영 위치: ${Number(post.latitude).toFixed(5)}, ${Number(post.longitude).toFixed(5)}</div>` : ''}
-            ${post.comments.map(comment => { const location = String(comment.body).startsWith('위치:'); return `<div class="post-comment"><strong>${location ? '위치' : '댓글'}</strong><span>${escapeHtml(location ? String(comment.body).replace(/^위치:\s*/, '') : comment.body)}</span></div>`; }).join('')}
+            ${locationName ? `<div class="post-meta">위치: ${escapeHtml(locationName)}</div>` : (post.latitude && post.longitude ? `<div class="post-meta">촬영 위치: ${Number(post.latitude).toFixed(5)}, ${Number(post.longitude).toFixed(5)}</div>` : '')}
             <div class="post-actions">
               ${post.owner_token === ownerToken ? `<button class="secondary post-delete" type="button" data-post-id="${post.id}">내 게시물 삭제</button>` : ''}
             </div>
-          </article>`).join('');
+          </article>`;
+        }).join('');
       } catch (error) {
         posts.innerHTML = '<div class="empty-posts">게시글을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</div>';
       }
