@@ -260,7 +260,7 @@
       try {
         const response = await fetch(`${SUPABASE_URL}/rest/v1/community_posts`, {
           method: 'POST',
-          headers: { ...supabaseHeaders, Prefer: 'return=representation' },
+          headers: { ...supabaseHeaders, Prefer: 'return=minimal' },
           body: JSON.stringify({
             title: '사진 게시글',
             body: '카메라로 촬영한 사진입니다.',
