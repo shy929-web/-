@@ -63,6 +63,9 @@
     .feature { border: 0; background: rgba(255,255,255,.6); color: inherit; font: inherit; cursor: pointer; border-radius: 16px; box-shadow: 0 3px 0 rgba(7,51,78,.25); transition: transform .15s; }
     .feature:hover { transform: translateY(-3px); }
     .feature:last-child { border: 0; }
+    .guide-species { min-height: 128px; display: grid; grid-template-rows: 82px auto; gap: 7px; align-items: center; padding: 8px; color: #eef1ff; background: rgba(255,255,255,.12); box-shadow: none; }
+    .guide-species img { width: 100%; height: 82px; object-fit: cover; border-radius: 10px; background: #182341; }
+    .guide-species span { font-weight: 800; font-size: .9rem; }
     .feature .icon { font-size: 2.25rem; line-height: 1; }
     .feature h3 { margin: 8px 0 4px; font-size: .96rem; }
     .feature p { margin: 0; font-size: .72rem; line-height: 1.35; }
@@ -187,7 +190,17 @@
       return page.originalimage?.source || page.thumbnail?.source || '';
     }
     function bindGuideButtons() {
-      guideSection.querySelectorAll('.feature').forEach(button => button.addEventListener('click', () => showGuideDetail(button.textContent.trim())));
+      guideSection.querySelectorAll('.feature').forEach(button => {
+        const name = button.dataset.speciesName || button.textContent.trim();
+        const scientificName = jellyfishGuide[name]?.[2];
+        button.dataset.speciesName = name;
+        button.classList.add('guide-species');
+        button.innerHTML = `<span>${name}</span>`;
+        getSpeciesPhoto(scientificName).then(url => {
+          if (url) button.innerHTML = `<img src="${url}" alt="${name} 사진" loading="lazy"><span>${name}</span>`;
+        }).catch(() => {});
+        button.addEventListener('click', () => showGuideDetail(name));
+      });
       guideSection.querySelector('#closeGuide')?.addEventListener('click', showJellyMapHome);
     }
     function showGuideDetail(name) {
