@@ -164,7 +164,6 @@
     let stream;
     let facingMode = 'user';
     let capturedLocation = null;
-    let jellyfishModel;
     const posts = document.querySelector('#posts');
     const refreshPostsButton = document.querySelector('#refreshPosts');
     const guideSection = document.querySelector('#guideSection');
@@ -349,39 +348,11 @@
       });
     }
 
-    async function classifyCapturedPhoto() {
-      // CLIP은 정해진 이미지 분류 목록 대신 "해파리"와 "비해파리"를 직접 비교합니다.
-      const { pipeline, RawImage } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1');
-      jellyfishModel ||= pipeline('zero-shot-image-classification', 'Xenova/clip-vit-base-patch32');
-      const classifier = await jellyfishModel;
-      const image = await RawImage.fromURL(canvas.toDataURL('image/jpeg', 0.9));
-      const predictions = await classifier(image, [
-        'a jellyfish',
-        'a fish',
-        'an underwater animal that is not a jellyfish',
-        'a person, phone, or everyday object'
-      ]);
-      const jellyfish = predictions.find(prediction => prediction.label === 'a jellyfish');
-      const strongestOther = predictions.filter(prediction => prediction.label !== 'a jellyfish')
-        .reduce((best, prediction) => Math.max(best, prediction.score), 0);
-      return {
-        isJellyfish: Boolean(jellyfish && jellyfish.score >= 0.34 && jellyfish.score > strongestOther),
-        confidence: Math.round((jellyfish?.score || 0) * 100),
-        label: jellyfish?.label || ''
-      };
-    }
-
     async function postPhoto() {
       if (!downloadLink.href) return;
       postPhotoButton.disabled = true;
-      setStatus('사진이 해파리인지 무료 전용 모델로 확인하는 중입니다. 처음에는 모델을 내려받아 조금 걸릴 수 있습니다…');
+      setStatus('사진을 사진 커뮤니티에 올리는 중입니다…');
       try {
-        const classification = await classifyCapturedPhoto();
-        if (!classification.isJellyfish) {
-          setStatus('해파리 사진으로 판단되지 않아 게시판에 올리지 않았습니다.');
-          return;
-        }
-        setStatus('해파리 사진으로 판단됐습니다. 게시판에 올리는 중입니다…');
         const response = await fetch(`${SUPABASE_URL}/functions/v1/publish-jellyfish-photo`, {
           method: 'POST',
           headers: supabaseHeaders,
@@ -389,10 +360,7 @@
             image_data: downloadLink.href,
             latitude: capturedLocation?.latitude ?? null,
             longitude: capturedLocation?.longitude ?? null,
-            owner_token: ownerToken,
-            is_jellyfish: true,
-            confidence: classification.confidence,
-            label: classification.label
+            owner_token: ownerToken
           })
         });
         if (!response.ok) {
@@ -400,7 +368,7 @@
           throw new Error(details || '게시 실패');
         }
         const result = await response.json();
-        setStatus(`해파리 사진으로 분류되어 게시됐습니다. (판별 신뢰도 ${classification.confidence}%)`);
+        setStatus('사진이 사진 커뮤니티에 게시됐습니다.');
         await loadCommunityPosts();
       } catch (error) {
         setStatus(`게시판에 올리지 못했습니다. ${error.message.slice(0, 100)}`);
