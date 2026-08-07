@@ -82,7 +82,8 @@
     .jelly-hero { padding: 26px 20px 22px; background: linear-gradient(145deg, #073b5c, #087f9a 58%, #2ec1c4); color: #fff; box-shadow: 0 20px 45px rgba(8, 96, 124, .24); }
     .jelly-hero::after { content: '🪼'; right: -14px; bottom: -58px; font-size: 165px; opacity: .16; }
     .brand { justify-content: flex-start; font-size: clamp(1.75rem, 7vw, 2.5rem); color: white; letter-spacing: -.05em; }
-    .brand-mark { width: 42px; height: 42px; transform: none; background: #fff; color: #087f9a; box-shadow: none; font-size: .9rem; letter-spacing: -.06em; }
+    .brand-mark { width: 42px; height: 42px; overflow: hidden; transform: none; background: #fff; color: #087f9a; box-shadow: none; font-size: .9rem; letter-spacing: -.06em; }
+    .brand-mark img { width: 100%; height: 100%; object-fit: cover; }
     .brand b { color: #97f1e8; }
     .jelly-hero h2 { max-width: 610px; margin: 24px 0 8px; text-align: left; font-size: clamp(1.65rem, 6.5vw, 2.7rem); letter-spacing: -.065em; text-wrap: balance; }
     .jelly-hero h2 em { color: #ffb7a8; }
@@ -123,7 +124,7 @@
 <body>
   <main>
     <section class="card jelly-hero" aria-label="젤리맵 안내">
-      <div class="brand"><span class="brand-mark">JM</span><span>Jelly<b>Map</b></span></div>
+      <div class="brand"><span class="brand-mark"><img src="https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=160&q=85" alt="해파리"></span><span>Jelly<b>Map</b></span></div>
       <h2>부산 바다의 <em>해파리</em>를<br>더 안전하게 즐기세요.</h2>
       <p class="hero-copy">실시간 제보 · 종류 도감 · 출몰 위치 확인</p>
       <div class="feature-grid">
