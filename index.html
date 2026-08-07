@@ -52,15 +52,16 @@
     .screen-back { margin-top: 16px; }
     .jelly-hero { overflow: hidden; position: relative; margin-bottom: 20px; background: linear-gradient(160deg, #dffbff 0%, #bceff4 48%, #48b5cb 100%); color: #07334e; }
     .jelly-hero::after { content: '🪼'; position: absolute; right: -20px; bottom: -40px; font-size: 150px; opacity: .18; }
-    .brand { display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 900; font-size: 1.8rem; color: #123b55; }
+    .brand { display: flex; align-items: center; justify-content: center; gap: 12px; font-weight: 900; font-size: 2.5rem; color: #123b55; }
     .brand-mark { width: 46px; height: 46px; display: grid; place-items: center; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: #45b9c9; color: white; box-shadow: 0 4px 0 #176a86; }
     .brand-mark span { transform: rotate(45deg); font-size: 1.55rem; }
     .brand b { color: #31aebd; }
-    .jelly-hero h2 { max-width: 560px; margin: 20px auto; text-align: center; font-size: clamp(1.8rem, 6vw, 3.1rem); line-height: 1.18; letter-spacing: -.07em; }
+    .jelly-hero h2 { max-width: 560px; margin: 20px auto; text-align: center; font-size: clamp(1.5rem, 5vw, 2.5rem); line-height: 1.18; letter-spacing: -.07em; }
     .jelly-hero h2 em { color: #f06d5f; font-style: normal; }
     .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; position: relative; z-index: 1; }
     .feature { text-align: center; padding: 12px 5px; border-right: 1px solid rgba(7,51,78,.2); }
-    .feature { border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+    .feature { border: 0; background: rgba(255,255,255,.6); color: inherit; font: inherit; cursor: pointer; border-radius: 16px; box-shadow: 0 3px 0 rgba(7,51,78,.25); transition: transform .15s; }
+    .feature:hover { transform: translateY(-3px); }
     .feature:last-child { border: 0; }
     .feature .icon { font-size: 2.25rem; line-height: 1; }
     .feature h3 { margin: 8px 0 4px; font-size: .96rem; }
@@ -80,7 +81,7 @@
         <button class="feature" type="button" id="guideShortcut"><div class="icon">📖🪼</div><h3>해파리 종류 도감</h3><p>특성·독성 정보를 확인하세요!</p></button>
         <button class="feature" type="button" id="mapShortcut"><div class="icon">🗺️📍</div><h3>출몰 지도 확인</h3><p>내 위치 주변 출몰 지역을 확인하세요!</p></button>
       </div>
-      <div class="busan-strip"><p>부산 바다 출몰 정보를 지도에서 확인하세요</p><button class="primary" type="button" onclick="document.querySelector('#busanMap').click()">부산 출몰 지도 보기</button></div>
+      <div class="busan-strip"><p>부산 바다 출몰 정보를 지도에서 확인하세요</p></div>
     </section>
     <header>
       <h1>Jelly Map</h1>
