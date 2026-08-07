@@ -49,6 +49,7 @@
     .empty-posts { color: #aeb9dd; text-align: center; padding: 18px 8px; }
     .map { display: none; height: 230px; margin-top: 14px; border-radius: 14px; overflow: hidden; }
     .map.visible { display: block; }
+    .screen-back { margin-top: 16px; }
     .jelly-hero { overflow: hidden; position: relative; margin-bottom: 20px; background: linear-gradient(160deg, #dffbff 0%, #bceff4 48%, #48b5cb 100%); color: #07334e; }
     .jelly-hero::after { content: '🪼'; position: absolute; right: -20px; bottom: -40px; font-size: 150px; opacity: .18; }
     .brand { display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 900; font-size: 1.8rem; color: #123b55; }
@@ -105,7 +106,7 @@
       <p class="note">카메라 권한이 필요합니다. 모바일에서는 HTTPS 또는 localhost 환경에서 사용할 수 있습니다.</p>
     </section>
     <section class="card community" id="guideSection" hidden aria-label="해파리 종류 도감"><h2>해파리 종류 도감</h2><p class="note" style="text-align:left">국내 연안에서 자주 관찰되는 해파리입니다. 사진만으로 정확한 종 판별은 어려울 수 있으니 만지지 마세요.</p><div class="feature-grid" style="grid-template-columns:repeat(2,1fr);color:#eef1ff"><button class="feature">보름달물해파리</button><button class="feature">노무라입깃해파리</button><button class="feature">커튼원양해파리</button><button class="feature">작은부레관해파리</button><button class="feature">꽃모자갈퀴손해파리</button><button class="feature">푸른우산관해파리</button><button class="feature">야광원양해파리</button><button class="feature">평면해파리</button><button class="feature">오이빗해파리</button><button class="feature">입방해파리</button></div><button class="secondary" id="closeGuide" style="margin-top:16px">도감 닫기</button></section>
-    <section class="card map-card" id="mapCard" hidden aria-label="지도 영역">
+    <section class="card map-card" id="mapCard" hidden aria-label="지도 영역"><button class="secondary screen-back" type="button" onclick="showJellyMapHome()">← 메인으로</button>
       <div class="community-head">
         <div>
           <h2>부산 지도</h2>
@@ -301,10 +302,11 @@
         }, () => {}, { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 });
       }
     }
-    document.querySelector('#reportShortcut').addEventListener('click', () => document.querySelector('#reportSection').scrollIntoView({ behavior: 'smooth' }));
-    document.querySelector('#guideShortcut').addEventListener('click', () => { guideSection.hidden = false; guideSection.scrollIntoView({ behavior: 'smooth' }); });
-    document.querySelector('#closeGuide').addEventListener('click', () => { guideSection.hidden = true; });
-    document.querySelector('#mapShortcut').addEventListener('click', () => { showBusanMap(); mapCard.scrollIntoView({ behavior: 'smooth' }); });
+    function showJellyMapHome() { reportSection.hidden = false; guideSection.hidden = true; mapCard.hidden = true; }
+    document.querySelector('#reportShortcut').addEventListener('click', () => { showJellyMapHome(); reportSection.scrollIntoView({ behavior: 'smooth' }); });
+    document.querySelector('#guideShortcut').addEventListener('click', () => { reportSection.hidden = true; mapCard.hidden = true; guideSection.hidden = false; guideSection.scrollIntoView({ behavior: 'smooth' }); });
+    document.querySelector('#closeGuide').addEventListener('click', showJellyMapHome);
+    document.querySelector('#mapShortcut').addEventListener('click', () => { reportSection.hidden = true; guideSection.hidden = true; showBusanMap(); mapCard.scrollIntoView({ behavior: 'smooth' }); });
 
     function renderCommunityMarkers(communityPosts) {
       const locatedPosts = communityPosts.filter(post => post.latitude && post.longitude);
