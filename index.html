@@ -59,6 +59,7 @@
     .jelly-hero h2 em { color: #f06d5f; font-style: normal; }
     .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; position: relative; z-index: 1; }
     .feature { text-align: center; padding: 12px 5px; border-right: 1px solid rgba(7,51,78,.2); }
+    .feature { border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
     .feature:last-child { border: 0; }
     .feature .icon { font-size: 2.25rem; line-height: 1; }
     .feature h3 { margin: 8px 0 4px; font-size: .96rem; }
@@ -74,9 +75,9 @@
       <div class="brand"><span class="brand-mark"><span>🪼</span></span>Jelly<b>Map</b></div>
       <h2>부산 바닷가 <em>해파리</em>,<br>실시간으로 확인하고<br>안전하게 즐기세요!</h2>
       <div class="feature-grid">
-        <article class="feature"><div class="icon">📱📍</div><h3>해파리 실시간 신고</h3><p>발견 즉시 제보해 주세요!</p></article>
-        <article class="feature"><div class="icon">📖🪼</div><h3>해파리 종류 도감</h3><p>특성·독성 정보를 확인하세요!</p></article>
-        <article class="feature"><div class="icon">🗺️📍</div><h3>출몰 지도 확인</h3><p>내 위치 주변 출몰 지역을 확인하세요!</p></article>
+        <button class="feature" type="button" id="reportShortcut"><div class="icon">📱📍</div><h3>해파리 실시간 신고</h3><p>발견 즉시 제보해 주세요!</p></button>
+        <button class="feature" type="button" id="guideShortcut"><div class="icon">📖🪼</div><h3>해파리 종류 도감</h3><p>특성·독성 정보를 확인하세요!</p></button>
+        <button class="feature" type="button" id="mapShortcut"><div class="icon">🗺️📍</div><h3>출몰 지도 확인</h3><p>내 위치 주변 출몰 지역을 확인하세요!</p></button>
       </div>
       <div class="busan-strip"><p>부산 바다 출몰 정보를 지도에서 확인하세요</p><button class="primary" type="button" onclick="document.querySelector('#busanMap').click()">부산 출몰 지도 보기</button></div>
     </section>
@@ -84,7 +85,7 @@
       <h1>Jelly Map</h1>
       <p>해파리 사진을 찍어서 게시판에 올려주세요.</p>
     </header>
-    <section class="card" aria-label="사진 촬영 영역">
+    <section class="card" id="reportSection" aria-label="사진 촬영 영역">
       <div class="stage">
         <video id="camera" autoplay playsinline muted aria-label="카메라 미리보기"></video>
         <canvas id="photo" aria-label="촬영한 사진"></canvas>
@@ -103,6 +104,7 @@
       </div>
       <p class="note">카메라 권한이 필요합니다. 모바일에서는 HTTPS 또는 localhost 환경에서 사용할 수 있습니다.</p>
     </section>
+    <section class="card community" id="guideSection" hidden aria-label="해파리 종류 도감"><h2>해파리 종류 도감</h2><p class="note" style="text-align:left">사진을 게시하면 AI가 해파리 여부와 종류를 분석해 결과 댓글로 알려드립니다. 사진만으로는 정확한 종 판별이 어려울 수 있으니 만지지 말고 안전거리를 유지하세요.</p><button class="secondary" id="closeGuide">도감 닫기</button></section>
     <section class="card map-card" id="mapCard" hidden aria-label="지도 영역">
       <div class="community-head">
         <div>
@@ -164,6 +166,7 @@
     let capturedLocation = null;
     const posts = document.querySelector('#posts');
     const refreshPostsButton = document.querySelector('#refreshPosts');
+    const guideSection = document.querySelector('#guideSection');
 
     function setStatus(message) { status.textContent = message; }
 
@@ -280,6 +283,10 @@
         }, () => {}, { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 });
       }
     }
+    document.querySelector('#reportShortcut').addEventListener('click', () => document.querySelector('#reportSection').scrollIntoView({ behavior: 'smooth' }));
+    document.querySelector('#guideShortcut').addEventListener('click', () => { guideSection.hidden = false; guideSection.scrollIntoView({ behavior: 'smooth' }); });
+    document.querySelector('#closeGuide').addEventListener('click', () => { guideSection.hidden = true; });
+    document.querySelector('#mapShortcut').addEventListener('click', () => { showBusanMap(); mapCard.scrollIntoView({ behavior: 'smooth' }); });
 
     function renderCommunityMarkers(communityPosts) {
       const locatedPosts = communityPosts.filter(post => post.latitude && post.longitude);
