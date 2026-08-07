@@ -63,7 +63,6 @@
         <canvas id="photo" aria-label="촬영한 사진"></canvas>
         <div class="empty" id="empty">카메라 시작 버튼을 누르면 촬영 화면이 열립니다.</div>
       </div>
-      <div class="map" id="map" aria-label="촬영 위치 지도"></div>
       <p class="status" id="status" role="status">카메라를 시작할 준비가 되었습니다.</p>
       <div class="actions">
         <button class="primary" id="start">카메라 시작</button>
@@ -76,6 +75,15 @@
         <button class="secondary" id="busanMap">부산 지도 보기</button>
       </div>
       <p class="note">카메라 권한이 필요합니다. 모바일에서는 HTTPS 또는 localhost 환경에서 사용할 수 있습니다.</p>
+    </section>
+    <section class="card map-card" id="mapCard" hidden aria-label="지도 영역">
+      <div class="community-head">
+        <div>
+          <h2>부산 지도</h2>
+          <p class="note" style="text-align:left; margin:4px 0 0">촬영 위치와 현재 GPS 위치를 별도의 지도에서 확인할 수 있습니다.</p>
+        </div>
+      </div>
+      <div class="map" id="map" aria-label="촬영 위치 지도"></div>
     </section>
     <section class="card community" aria-label="커뮤니티 게시판">
       <div class="community-head">
@@ -113,6 +121,7 @@
     const postPhotoButton = document.querySelector('#postPhoto');
     const locationButton = document.querySelector('#location');
     const busanMapButton = document.querySelector('#busanMap');
+    const mapCard = document.querySelector('#mapCard');
     const mapElement = document.querySelector('#map');
     let map;
     let marker;
@@ -191,6 +200,7 @@
       navigator.geolocation.getCurrentPosition(({ coords }) => {
         const { latitude, longitude, accuracy } = coords;
         capturedLocation = { latitude, longitude };
+        mapCard.hidden = false;
         mapElement.classList.add('visible');
         if (!map) {
           map = L.map(mapElement).setView([latitude, longitude], 16);
@@ -212,6 +222,7 @@
 
     function showBusanMap() {
       const busan = [35.1796, 129.0756];
+      mapCard.hidden = false;
       mapElement.classList.add('visible');
       if (!map) {
         map = L.map(mapElement).setView(busan, 11);
