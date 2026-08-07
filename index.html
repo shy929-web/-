@@ -114,6 +114,8 @@
     .post-comment { background: #e8f6f4; color: #285a68; border-radius: 10px; }
     .post-comment strong { color: #087f8d; }
     .map { border: 1px solid #d7e9ec; border-radius: 18px; }
+    .current-location-marker { background: transparent; border: 0; }
+    .current-location-marker span { display: block; width: 20px; height: 20px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: #ef5b5b; border: 3px solid #fff; box-shadow: 0 3px 9px rgba(116, 25, 25, .35); }
     .guide-species { min-height: 136px; grid-template-rows: 86px auto; border: 1px solid #dcecf0; background: #f7fbfc; color: #174c66; }
     .guide-species img { height: 86px; border-radius: 12px; }
     .guide-species span { font-size: .86rem; }
@@ -211,6 +213,7 @@
     const mapElement = document.querySelector('#map');
     let map;
     let marker;
+    const currentLocationIcon = L.divIcon({ className: 'current-location-marker', html: '<span></span>', iconSize: [24, 24], iconAnchor: [12, 24] });
     let communityMarkers = [];
     let stream;
     let facingMode = 'environment';
@@ -356,7 +359,7 @@
           map.setView([latitude, longitude], 16);
         }
         marker?.remove();
-        marker = L.marker([latitude, longitude]).addTo(map)
+        marker = L.marker([latitude, longitude], { icon: currentLocationIcon }).addTo(map)
           .bindPopup(`촬영 위치<br>위도 ${latitude.toFixed(5)}, 경도 ${longitude.toFixed(5)}<br>정확도 약 ${Math.round(accuracy)}m`)
           .openPopup();
         setStatus(`촬영 위치를 지도에 표시했습니다. (정확도 약 ${Math.round(accuracy)}m)`);
@@ -378,12 +381,11 @@
         map.setView(busan, 11);
       }
       marker?.remove();
-      marker = L.marker(busan).addTo(map).bindPopup('부산 중심 지도').openPopup();
-      setStatus('부산 지도를 표시했습니다. GPS 권한을 허용하면 현재 위치도 표시합니다.');
+      setStatus('부산 지도를 표시했습니다. GPS 권한을 허용하면 현재 위치를 빨간색 마커로 표시합니다.');
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(({ coords }) => {
           marker?.remove();
-          marker = L.marker([coords.latitude, coords.longitude]).addTo(map)
+          marker = L.marker([coords.latitude, coords.longitude], { icon: currentLocationIcon }).addTo(map)
             .bindPopup(`현재 GPS 위치<br>위도 ${coords.latitude.toFixed(5)}, 경도 ${coords.longitude.toFixed(5)}`)
             .openPopup();
           map.setView([coords.latitude, coords.longitude], 13);
