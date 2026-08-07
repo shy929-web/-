@@ -256,14 +256,12 @@
     async function postPhoto() {
       if (!downloadLink.href) return;
       postPhotoButton.disabled = true;
-      setStatus('사진을 사진 커뮤니티에 올리는 중입니다…');
+      setStatus('사진을 올리고 해파리 종류를 자동 분석하는 중입니다…');
       try {
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/community_posts`, {
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/publish-jellyfish-photo`, {
           method: 'POST',
-          headers: { ...supabaseHeaders, Prefer: 'return=minimal' },
+          headers: supabaseHeaders,
           body: JSON.stringify({
-            title: '사진 게시글',
-            body: '카메라로 촬영한 사진입니다.',
             image_data: downloadLink.href,
             latitude: capturedLocation?.latitude ?? null,
             longitude: capturedLocation?.longitude ?? null,
@@ -274,7 +272,10 @@
           const details = await response.text();
           throw new Error(details || '게시 실패');
         }
-        setStatus('사진이 공개 사진 커뮤니티에 게시됐습니다.');
+        const result = await response.json();
+        setStatus(result.classification?.is_jellyfish
+          ? '사진이 게시됐고, 해파리 자동 분류 댓글을 남겼습니다.'
+          : '사진이 공개 사진 커뮤니티에 게시됐습니다.');
         await loadCommunityPosts();
       } catch (error) {
         setStatus(`게시판에 올리지 못했습니다. ${error.message.slice(0, 100)}`);
