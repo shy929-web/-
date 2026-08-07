@@ -167,6 +167,24 @@
     const posts = document.querySelector('#posts');
     const refreshPostsButton = document.querySelector('#refreshPosts');
     const guideSection = document.querySelector('#guideSection');
+    const jellyfishGuide = {
+      '보름달물해파리':['약독성','국내 전 연안에서 흔히 보이는 투명한 해파리입니다. 우산 안의 네 개 고리 모양 생식소가 특징입니다.'],
+      '노무라입깃해파리':['강독성','대형으로 성장하며 여름·가을에 대량 유입될 수 있습니다. 촉수에 닿지 마세요.'],
+      '커튼원양해파리':['강독성','긴 촉수와 커튼처럼 보이는 몸이 특징인 주의 종입니다.'],
+      '작은부레관해파리':['맹독성','부레처럼 물 위에 뜨며 긴 촉수를 가집니다. 발견 시 절대 만지지 마세요.'],
+      '꽃모자갈퀴손해파리':['맹독성','상자 형태의 몸과 발달한 촉수를 가진 독성 해파리입니다.'],
+      '푸른우산관해파리':['약독성','푸른색 부유체가 눈에 띄는 군체성 자포동물입니다.'],
+      '야광원양해파리':['강독성','따뜻한 바다에서 관찰되며 쏘임 사고에 주의가 필요합니다.'],
+      '평면해파리':['약독성','납작한 우산 모양을 가진 연안 출현 종입니다.'],
+      '오이빗해파리':['약독성','오이처럼 길쭉한 몸 형태가 특징인 해파리입니다.'],
+      '입방해파리':['강독성','네모난 우산 형태가 특징이며 강한 독성을 가질 수 있습니다.']
+    };
+    const guideListHtml = guideSection.innerHTML;
+    guideSection.querySelectorAll('.feature').forEach(button => button.addEventListener('click', () => {
+      const name = button.textContent.trim(); const [toxicity, description] = jellyfishGuide[name];
+      guideSection.innerHTML = `<h2>${name}</h2><img class="post-image" src="https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=900&q=80" alt="${name} 참고 사진"><p class="post-body">${description}</p><p class="post-comment"><strong>독성 정도</strong><span>${toxicity}</span></p><button class="secondary" id="backToGuide">← 도감 목록으로</button>`;
+      guideSection.querySelector('#backToGuide').addEventListener('click', () => { guideSection.innerHTML = guideListHtml; location.reload(); });
+    }));
 
     function setStatus(message) { status.textContent = message; }
 
